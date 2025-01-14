@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 log = "0.4.22"
-uefi = { version = "0.33.0", features = ["logger", "panic_handler"] }
+uefi = { version = "0.33.0", features = ["alloc", "logger", "panic_handler", "global_allocator"] }

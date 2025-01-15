@@ -4,8 +4,10 @@
 #[macro_use]
 extern crate alloc;
 
-use core::panic;
+use core::{panic, usize};
 
+use goblin::elf::Elf;
+use goblin::elf64::program_header;
 use uefi::println;
 use uefi::proto::media::file::{File, FileInfo};
 use uefi::{
@@ -54,5 +56,24 @@ fn load_elf(path: &str) {
 
     file.read(&mut buf).unwrap();
 
-    println!("{:?}", buf);
+    // load elf
+    let elf = Elf::parse(&buf).unwrap();
+
+    let mut dest_start = usize::MAX;
+    let mut dest_end = 0;
+    for ph in elf.program_headers.iter() {
+        println!(
+            "Program header: {} {} {} {} {}",
+            program_header::pt_to_str(ph.p_type),
+            ph.p_offset,
+            ph.p_vaddr,
+            ph.p_paddr,
+            ph.p_memsz
+        );
+        if ph.p_type != program_header::PT_LOAD {
+            continue;
+        }
+        dest_start = dest_start.min(ph.p_paddr as usize);
+        dest_end = dest_end.max(ph.p_paddr + ph.p_memsz);
+    }
 }

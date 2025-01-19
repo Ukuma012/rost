@@ -1,9 +1,10 @@
 #![no_std]
 #![no_main]
+use common::boot_info::BootInfo;
 use core::panic::PanicInfo;
 
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+pub extern "sysv64" fn kernel_entry(boot_info: &BootInfo) -> ! {
     loop {}
 }
 

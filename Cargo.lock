@@ -18,6 +18,7 @@ checksum = "1be3f42a67d6d345ecd59f675f3f012d6974981560836e938c22b424b85ce1be"
 name = "bootloader"
 version = "0.1.0"
 dependencies = [
+ "common",
  "goblin",
  "log",
  "uefi",
@@ -28,6 +29,10 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "common"
+version = "0.1.0"
 
 [[package]]
 name = "goblin"

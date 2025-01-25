@@ -6,12 +6,12 @@ extern crate alloc;
 
 use boot::stall;
 use boot::{AllocateType, MemoryType};
+use common::elf::{Elf64, SegmentType};
 use common::graphic_info;
 use common::graphic_info::GraphicInfo;
 use common::mem_desc;
-use core::{panic, slice, usize};
-use goblin::elf::Elf;
-use goblin::elf64::program_header;
+use core::slice::from_raw_parts_mut;
+use core::{panic, usize};
 use log::info;
 use uefi::mem::memory_map::MemoryAttribute;
 use uefi::println;
@@ -71,24 +71,19 @@ fn load_elf(path: &str) -> u64 {
     file.read(&mut buf).unwrap();
 
     // load elf
-    let elf = Elf::parse(&buf).unwrap();
+    let elf = Elf64::new(&buf).unwrap();
 
     let mut dest_start = usize::MAX;
     let mut dest_end: usize = 0;
-    for ph in elf.program_headers.iter() {
-        println!(
-            "Program header: {} {} {} {} {}",
-            program_header::pt_to_str(ph.p_type),
-            ph.p_offset,
-            ph.p_vaddr,
-            ph.p_paddr,
-            ph.p_memsz
-        );
-        if ph.p_type != program_header::PT_LOAD {
+    let phs = elf.program_headers();
+
+    for p in &phs {
+        if p.segment_type() != SegmentType::Load {
             continue;
         }
-        dest_start = dest_start.min(ph.p_paddr as usize);
-        dest_end = dest_end.max((ph.p_paddr + ph.p_memsz) as usize);
+
+        dest_start = dest_start.min(p.virt_addr as usize);
+        dest_end = dest_end.max((p.virt_addr + p.mem_size) as usize);
     }
 
     let pages = (dest_end - dest_start + UEFI_PAGE_SIZE - 1) / UEFI_PAGE_SIZE;
@@ -99,20 +94,22 @@ fn load_elf(path: &str) -> u64 {
     )
     .unwrap();
 
-    for ph in elf.program_headers.iter() {
-        if ph.p_type != program_header::PT_LOAD {
+    for p in &phs {
+        if p.segment_type() != SegmentType::Load {
             continue;
         }
-        let dest = unsafe { slice::from_raw_parts_mut(ph.p_paddr as *mut u8, ph.p_memsz as usize) };
-        dest[..(ph.p_filesz as usize)].copy_from_slice(
-            &buf[(ph.p_offset as usize)..(ph.p_offset as usize + ph.p_filesz as usize)],
-        );
-        dest[(ph.p_filesz as usize)..].fill(0);
+
+        let offset = p.offset as usize;
+        let file_size = p.file_size as usize;
+        let mem_size = p.mem_size as usize;
+        let dest = unsafe { from_raw_parts_mut(p.virt_addr as *mut u8, mem_size) };
+        dest[..file_size].copy_from_slice(&buf[offset..offset + file_size]);
+        dest[file_size..].fill(0);
     }
 
     info!("Loaded ELF at: 0x{:x}", dest_start);
 
-    elf.entry
+    elf.header().entry_point
 }
 
 fn init_graphic(resolution: (usize, usize)) -> GraphicInfo {

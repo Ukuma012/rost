@@ -3,8 +3,8 @@
 use common::boot_info::BootInfo;
 use core::panic::PanicInfo;
 
-#[no_mangle]
-pub extern "sysv64" fn kernel_entry(boot_info: &BootInfo) -> ! {
+#[unsafe(no_mangle)]
+pub extern "sysv64" fn kernel_main(boot_info: &BootInfo) -> ! {
     loop {}
 }
 

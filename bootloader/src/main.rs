@@ -4,25 +4,20 @@
 #[macro_use]
 extern crate alloc;
 
-use alloc::vec::Vec;
+use boot::stall;
 use boot::{AllocateType, MemoryType};
-use common::boot_info::BootInfo;
 use common::graphic_info;
 use common::graphic_info::GraphicInfo;
 use common::mem_desc;
-use core::mem;
-use core::slice::from_raw_parts_mut;
 use core::{panic, slice, usize};
 use goblin::elf::Elf;
 use goblin::elf64::program_header;
 use log::info;
 use uefi::mem::memory_map::MemoryAttribute;
-use uefi::mem::memory_map::MemoryMap;
 use uefi::println;
 use uefi::proto::console::gop::GraphicsOutput;
 use uefi::proto::console::gop::PixelFormat;
 use uefi::proto::media::file::{File, FileInfo};
-use uefi::table::cfg::ACPI2_GUID;
 use uefi::{
     CStr16,
     prelude::*,
@@ -40,38 +35,9 @@ fn efi_main() -> Status {
 
     // load kernel
     let kernel_entry_point_addr = load_elf("kernel.elf");
-    let graphic_info = init_graphic((800, 600));
-    let (initramfs_start_virt_addr, initramfs_page_cnt) = load_initramfs("initramfs.img");
-    let rsdp_virt_addr = rsdp_addr();
-
-    let mut mem_map = Vec::with_capacity(128);
-    let map = unsafe { boot::exit_boot_services(MemoryType::RUNTIME_SERVICES_DATA) };
-
-    for desc in map.entries() {
-        let ty = convert_mem_type(desc.ty);
-        let phys_start = desc.phys_start;
-        let virt_start = desc.virt_start;
-        let page_cnt = desc.page_count;
-        let attr = convert_mem_attr(desc.att);
-
-        mem_map.push(mem_desc::MemoryDescriptor {
-            ty,
-            phys_start,
-            virt_start,
-            page_cnt,
-            attr,
-        });
-    }
-
-    let bi = BootInfo {
-        mem_map: &mem_map,
-        graphic_info,
-        initramfs_start_virt_addr,
-        initramfs_page_cnt,
-        rsdp_virt_addr,
-    };
-
-    jump_to_entry(kernel_entry_point_addr, &bi);
+    println!("entry_point: {}", kernel_entry_point_addr);
+    stall(10_000_000);
+    // let graphic_info = init_graphic((800, 600));
 
     Status::SUCCESS
 }
@@ -149,35 +115,6 @@ fn load_elf(path: &str) -> u64 {
     elf.entry
 }
 
-fn load_initramfs(path: &str) -> (u64, usize) {
-    let mut file = read_file(path);
-
-    let file_info = file.get_boxed_info::<FileInfo>().unwrap();
-    let file_size = file_info.file_size() as usize;
-    let mut buf = vec![0; file_size];
-
-    file.read(&mut buf).unwrap();
-
-    let pages = (file_size + UEFI_PAGE_SIZE - 1) / UEFI_PAGE_SIZE;
-
-    let ptr = boot::allocate_pages(AllocateType::AnyPages, MemoryType::LOADER_DATA, pages).unwrap();
-
-    let dest = unsafe { from_raw_parts_mut(ptr.as_ptr(), pages * UEFI_PAGE_SIZE) };
-    dest[..file_size].copy_from_slice(&buf);
-    dest[file_size..].fill(0);
-
-    info!("Loaded initramfs at: 0x{:x}", dest.as_ptr() as u64);
-
-    (dest.as_ptr() as u64, pages)
-}
-
-fn rsdp_addr() -> Option<u64> {
-    system::with_config_table(|e| {
-        let acpi2_entry = e.iter().find(|e| e.guid == ACPI2_GUID);
-        acpi2_entry.map(|e| e.address as u64)
-    })
-}
-
 fn init_graphic(resolution: (usize, usize)) -> GraphicInfo {
     let gop_handle = boot::get_handle_for_protocol::<GraphicsOutput>().unwrap();
     let mut gop = boot::open_protocol_exclusive::<GraphicsOutput>(gop_handle).unwrap();
@@ -232,10 +169,4 @@ fn convert_mem_type(mem_type: MemoryType) -> mem_desc::MemoryType {
         MemoryType::PERSISTENT_MEMORY => mem_desc::MemoryType::PersistentMemory,
         MemoryType(value) => mem_desc::MemoryType::Other(value),
     }
-}
-
-fn jump_to_entry(entry_base_addr: u64, bi: &BootInfo) {
-    let entry_point: extern "sysv64" fn(*const BootInfo) =
-        unsafe { mem::transmute(entry_base_addr) };
-    entry_point(bi);
 }

@@ -1,4 +1,7 @@
 /target
 /dev_memo
 
+build/
 kernel.elf
+mnt/
+app.img

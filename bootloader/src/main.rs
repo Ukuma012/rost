@@ -4,7 +4,6 @@
 #[macro_use]
 extern crate alloc;
 
-use boot::stall;
 use boot::{AllocateType, MemoryType};
 use common::elf::{Elf64, SegmentType};
 use core::mem;
@@ -33,6 +32,7 @@ fn efi_main() -> Status {
     println!("entry_point: {}", kernel_entry_point_addr);
 
     let entry_point: extern "sysv64" fn() = unsafe { mem::transmute(kernel_entry_point_addr) };
+    let _map = unsafe { boot::exit_boot_services(MemoryType::BOOT_SERVICES_DATA) };
 
     entry_point();
 

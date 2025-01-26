@@ -9,6 +9,7 @@ sudo cp ../kernel.elf ./mnt/kernel.elf
 sleep 1
 sudo umount ./mnt
 cd .. && qemu-system-x86_64 \
+         -monitor stdio \
          -bios OVMF_CODE.fd \
          -device ahci,id=ahci \
          -device ide-cd,drive=disk,bus=ahci.0 \

@@ -7,6 +7,7 @@ extern crate alloc;
 use boot::stall;
 use boot::{AllocateType, MemoryType};
 use common::elf::{Elf64, SegmentType};
+use core::mem;
 use core::slice::from_raw_parts_mut;
 use core::{panic, usize};
 use log::info;
@@ -30,7 +31,12 @@ fn efi_main() -> Status {
     // load kernel
     let kernel_entry_point_addr = load_elf("kernel.elf");
     println!("entry_point: {}", kernel_entry_point_addr);
-    stall(10_000_000);
+
+    let entry_point: extern "sysv64" fn() = unsafe { mem::transmute(kernel_entry_point_addr) };
+
+    entry_point();
+
+    println!("you can't see this message");
 
     Status::SUCCESS
 }

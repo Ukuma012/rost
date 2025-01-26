@@ -27,11 +27,9 @@ const UEFI_PAGE_SIZE: usize = 4096;
 fn efi_main() -> Status {
     uefi::helpers::init().unwrap();
 
-    println!("get memory map");
-
     // load kernel
-    // let kernel_entry_point_addr = load_elf("kernel.elf");
-    // println!("entry_point: {}", kernel_entry_point_addr);
+    let kernel_entry_point_addr = load_elf("kernel.elf");
+    println!("entry_point: {}", kernel_entry_point_addr);
     stall(10_000_000);
 
     Status::SUCCESS

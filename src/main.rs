@@ -7,7 +7,4 @@ fn main() {
 
     fs::copy(env!("UEFI_IMAGE"), &uefi_target).unwrap();
     fs::copy(env!("BIOS_IMAGE"), &bios_target).unwrap();
-
-    println!("UEFI disk image at {}", env!("UEFI_IMAGE"));
-    println!("BIOS disk image at {}", env!("BIOS_IMAGE"));
 }

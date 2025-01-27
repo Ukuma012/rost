@@ -216,6 +216,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bootloader_api"
+version = "0.11.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a08a674787a3711ea0ba3bd730e6ffeb74832dcf6c51caf553528b33b54f73"
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -587,7 +593,7 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 name = "kernel"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
 ]
 
 [[package]]
@@ -682,10 +688,6 @@ name = "once_cell"
 version = "1.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
-
-[[package]]
-name = "os"
-version = "0.1.0"
 
 [[package]]
 name = "overload"
@@ -840,6 +842,14 @@ name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
+
+[[package]]
+name = "rost"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "kernel",
+]
 
 [[package]]
 name = "rustix"

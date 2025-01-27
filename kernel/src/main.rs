@@ -3,8 +3,9 @@
 use core::arch::asm;
 use core::panic::PanicInfo;
 
-#[unsafe(no_mangle)]
-pub extern "sysv64" fn kernel_main() {
+bootloader_api::entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     loop {
         unsafe { asm!("hlt") }
     }

@@ -1,5 +1,5 @@
 /target
-/dev_memo
+memo.txt
 
 build/
 kernel.elf

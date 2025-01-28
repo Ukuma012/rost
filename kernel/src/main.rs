@@ -3,16 +3,28 @@
 use core::arch::asm;
 use core::panic::PanicInfo;
 
+mod framebuffer;
 bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        for byte in framebuffer.buffer_mut() {
-            *byte = 0x00;
+        let color = framebuffer::Color {
+            red: 0,
+            green: 0,
+            blue: 255,
+        };
+        for x in 0..100 {
+            for y in 0..100 {
+                let position = framebuffer::Position {
+                    x: 20 + x,
+                    y: 100 + y,
+                };
+                framebuffer::set_pixel_in(framebuffer, position, color);
+            }
         }
     }
     loop {
-        unsafe {asm!("hlt")}
+        unsafe { asm!("hlt") }
     }
 }
 

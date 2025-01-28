@@ -82,33 +82,6 @@ impl Display {
         };
         set_pixel_in(self.framebuffer, self.info, position, color);
     }
-
-    pub fn split_at_line(self, line_index: usize) -> (Self, Self) {
-        assert!(line_index < self.info.height);
-
-        let byte_offset = line_index * self.info.stride * self.info.bytes_per_pixel;
-        let (first_buffer, second_buffer) = self.framebuffer.split_at_mut(byte_offset);
-
-        let first = Self {
-            framebuffer: first_buffer,
-            info: FrameBufferInfo {
-                byte_len: byte_offset,
-                height: line_index,
-                ..self.info
-            },
-        };
-
-        let second = Self {
-            framebuffer: second_buffer,
-            info: FrameBufferInfo {
-                byte_len: self.info.byte_len - byte_offset,
-                height: self.info.height - line_index,
-                ..self.info
-            },
-        };
-
-        (first, second)
-    }
 }
 
 impl DrawTarget for Display {

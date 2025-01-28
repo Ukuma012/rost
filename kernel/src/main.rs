@@ -18,20 +18,15 @@ bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        let height = framebuffer.info().height;
-        let display = framebuffer::Display::new(framebuffer);
-        let (mut upper, mut lower) = display.split_at_line(height / 2);
+        for byte in framebuffer.buffer_mut() {
+            *byte = 0x00;
+        }
 
-        upper.clear(Rgb888::RED).unwrap_or_else(infallible);
-        lower.clear(Rgb888::BLUE).unwrap_or_else(infallible);
+        let mut display = framebuffer::Display::new(framebuffer);
 
-        let style = PrimitiveStyle::with_fill(Rgb888::YELLOW);
-        Circle::new(Point::new(50, 50), 300)
-            .draw_styled(&style, &mut upper)
-            .unwrap_or_else(infallible);
-        let character_style = MonoTextStyle::new(&FONT_10X20, Rgb888::BLUE);
-        let text = Text::new("Hello, World!", Point::new(140, 210), character_style);
-        text.draw(&mut upper).unwrap_or_else(infallible);
+        let character_style = MonoTextStyle::new(&FONT_10X20, Rgb888::GREEN);
+        let text = Text::new("Hello, World!", Point::new(0, 20), character_style);
+        text.draw(&mut display).unwrap_or_else(infallible);
     }
     loop {
         unsafe { asm!("hlt") }

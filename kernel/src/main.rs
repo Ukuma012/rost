@@ -8,8 +8,7 @@ use embedded_graphics::Drawable;
 use embedded_graphics::mono_font::iso_8859_13::FONT_10X20;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::Rgb888;
-use embedded_graphics::prelude::{DrawTarget, Point, RgbColor};
-use embedded_graphics::primitives::{Circle, PrimitiveStyle, StyledDrawable};
+use embedded_graphics::prelude::{Point, RgbColor};
 use embedded_graphics::text::Text;
 
 mod framebuffer;

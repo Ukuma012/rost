@@ -9,7 +9,8 @@ use embedded_graphics::{
         MonoTextStyle,
     },
     pixelcolor::{Rgb888, RgbColor},
-    prelude::Point,
+    prelude::{Point, Primitive},
+    primitives::{PrimitiveStyle, Rectangle},
     text::Text,
     Drawable, Pixel,
 };
@@ -98,6 +99,20 @@ impl Display {
             .draw(self)
             .unwrap();
     }
+
+    pub fn clear(&mut self, color: Color) {
+        Rectangle::new(
+            Point::zero(),
+            Size::new(self.info.width as u32, self.info.height as u32),
+        )
+        .into_styled(PrimitiveStyle::with_fill(Rgb888::new(
+            color.red,
+            color.green,
+            color.blue,
+        )))
+        .draw(self)
+        .unwrap();
+    }
 }
 
 impl DrawTarget for Display {
@@ -122,22 +137,5 @@ impl geometry::OriginDimensions for Display {
             self.info.width.try_into().unwrap(),
             self.info.height.try_into().unwrap(),
         )
-    }
-}
-
-extern "C" {
-    static _binary_hankaku_bin_start: [u8; 0];
-    static _binary_hankaku_bin_size: usize;
-}
-
-unsafe fn get_font(c: char) -> Option<*mut u8> {
-    let index = 16 * c as usize;
-    let size = &_binary_hankaku_bin_size as *const _ as usize;
-
-    if index < size {
-        let start = &_binary_hankaku_bin_start as *const [u8; 0] as *const u8 as *mut u8;
-        Some(start.offset(index as isize))
-    } else {
-        None
     }
 }

@@ -24,11 +24,12 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
             Color {
                 red: 0,
                 green: 0,
-                blue: 255,
+                blue: 0,
             },
         );
 
-        console.put_string("Hello world ");
+        console.clear();
+        console.put_string("Hello World ");
         console.put_string("This is Rost");
     }
 

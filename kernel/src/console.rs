@@ -26,6 +26,10 @@ impl Console {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.display.clear(self.bg_color);
+    }
+
     pub fn put_string(&mut self, str: &str) {
         for char in str.chars() {
             if char == '\n' || self.cursor_column >= COLUMNS - 1 {

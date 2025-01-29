@@ -1,6 +1,6 @@
 use bootloader_api::info::FrameBuffer;
 
-use crate::graphics::{Color, Display};
+use crate::display::{Color, Display};
 
 const ROWS: usize = 125;
 const COLUMNS: usize = 80;
@@ -33,7 +33,7 @@ impl Console {
     pub fn put_string(&mut self, str: &str) {
         for char in str.chars() {
             if char == '\n' || self.cursor_column >= COLUMNS - 1 {
-                Console::new_line();
+                self.new_line();
                 if char == '\n' {
                     continue;
                 }
@@ -51,7 +51,30 @@ impl Console {
         }
     }
 
-    fn new_line() {
-        todo!()
+    fn new_line(&mut self) {
+        self.cursor_column = 0;
+        if self.cursor_row < ROWS - 1 {
+            self.cursor_row += 1;
+            return;
+        } else {
+            for row in 1..ROWS {
+                self.buffer[row - 1] = self.buffer[row];
+                for col in 0..COLUMNS {
+                    let char = self.buffer[row - 1][col];
+                    self.display.draw_ascii(
+                        8 * col as i32,
+                        16 * (row - 1) as i32,
+                        char,
+                        self.fg_color,
+                    );
+                }
+            }
+        }
+        self.buffer[ROWS - 1] = [char::from(0); COLUMNS + 1];
+
+        for col in 0..COLUMNS {
+            self.display
+                .draw_ascii(8 * col as i32, 16 * (ROWS - 1) as i32, ' ', self.fg_color);
+        }
     }
 }

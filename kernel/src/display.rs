@@ -4,10 +4,7 @@ use bootloader_api::info::{FrameBuffer, FrameBufferInfo, PixelFormat};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{self, Size},
-    mono_font::{
-        ascii::{FONT_10X20, FONT_6X10},
-        MonoTextStyle,
-    },
+    mono_font::{ascii::FONT_10X20, MonoTextStyle},
     pixelcolor::{Rgb888, RgbColor},
     prelude::{Point, Primitive},
     primitives::{PrimitiveStyle, Rectangle},

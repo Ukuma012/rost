@@ -5,10 +5,10 @@ use core::convert::Infallible;
 use core::panic::PanicInfo;
 
 use console::Console;
-use graphics::Color;
+use display::Color;
 
 mod console;
-mod graphics;
+mod display;
 
 bootloader_api::entry_point!(kernel_main);
 
@@ -29,7 +29,9 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         );
 
         console.clear();
-        console.put_string("Hello World ");
+        for _ in 1..18 {
+            console.put_string("Hello\n");
+        }
         console.put_string("This is Rost");
     }
 

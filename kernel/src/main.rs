@@ -11,7 +11,7 @@ use embedded_graphics::pixelcolor::Rgb888;
 use embedded_graphics::prelude::{Point, RgbColor};
 use embedded_graphics::text::Text;
 
-mod framebuffer;
+mod graphics;
 
 bootloader_api::entry_point!(kernel_main);
 
@@ -20,12 +20,6 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         for byte in framebuffer.buffer_mut() {
             *byte = 0x00;
         }
-
-        let mut display = framebuffer::Display::new(framebuffer);
-
-        let character_style = MonoTextStyle::new(&FONT_10X20, Rgb888::GREEN);
-        let text = Text::new("Hello, World!", Point::new(0, 20), character_style);
-        text.draw(&mut display).unwrap_or_else(infallible);
     }
     loop {
         unsafe { asm!("hlt") }

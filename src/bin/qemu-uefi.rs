@@ -1,6 +1,6 @@
 use std::{
     env,
-    process::{self, Command}
+    process::{self, Command},
 };
 
 fn main() {
@@ -11,7 +11,4 @@ fn main() {
     qemu.arg("OVMF_CODE.fd");
     let exit_status = qemu.status().unwrap();
     process::exit(exit_status.code().unwrap_or(-1));
-
-
 }
-

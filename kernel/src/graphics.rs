@@ -4,9 +4,14 @@ use bootloader_api::info::{FrameBuffer, FrameBufferInfo, PixelFormat};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{self, Size},
+    mono_font::{
+        ascii::{FONT_10X20, FONT_6X10},
+        MonoTextStyle,
+    },
     pixelcolor::{Rgb888, RgbColor},
     prelude::Point,
-    Pixel,
+    text::Text,
+    Drawable, Pixel,
 };
 
 pub fn set_pixel_in(
@@ -82,6 +87,17 @@ impl Display {
         };
         set_pixel_in(self.framebuffer, self.info, position, color);
     }
+
+    pub fn draw_ascii(&mut self, x: i32, y: i32, c: char, color: Color) {
+        let style =
+            MonoTextStyle::new(&FONT_10X20, Rgb888::new(color.red, color.green, color.blue));
+
+        let mut buf = [0u8; 4];
+        let c = c.encode_utf8(&mut buf);
+        Text::new(&c, Point::new(x as i32, y + 20 as i32), style)
+            .draw(self)
+            .unwrap();
+    }
 }
 
 impl DrawTarget for Display {
@@ -106,5 +122,22 @@ impl geometry::OriginDimensions for Display {
             self.info.width.try_into().unwrap(),
             self.info.height.try_into().unwrap(),
         )
+    }
+}
+
+extern "C" {
+    static _binary_hankaku_bin_start: [u8; 0];
+    static _binary_hankaku_bin_size: usize;
+}
+
+unsafe fn get_font(c: char) -> Option<*mut u8> {
+    let index = 16 * c as usize;
+    let size = &_binary_hankaku_bin_size as *const _ as usize;
+
+    if index < size {
+        let start = &_binary_hankaku_bin_start as *const [u8; 0] as *const u8 as *mut u8;
+        Some(start.offset(index as isize))
+    } else {
+        None
     }
 }

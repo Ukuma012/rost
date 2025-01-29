@@ -3,24 +3,35 @@
 use core::arch::asm;
 use core::convert::Infallible;
 use core::panic::PanicInfo;
-use embedded_graphics::Drawable;
 
-use embedded_graphics::mono_font::iso_8859_13::FONT_10X20;
-use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::pixelcolor::Rgb888;
-use embedded_graphics::prelude::{Point, RgbColor};
-use embedded_graphics::text::Text;
+use console::Console;
+use graphics::Color;
 
+mod console;
 mod graphics;
 
 bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        for byte in framebuffer.buffer_mut() {
-            *byte = 0x00;
-        }
+        let mut console = Console::new(
+            framebuffer,
+            Color {
+                red: 0,
+                green: 255,
+                blue: 255,
+            },
+            Color {
+                red: 0,
+                green: 0,
+                blue: 255,
+            },
+        );
+
+        console.put_string("Hello world ");
+        console.put_string("This is Rost");
     }
+
     loop {
         unsafe { asm!("hlt") }
     }

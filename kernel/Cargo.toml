@@ -5,4 +5,7 @@ edition = "2021"
 
 [dependencies]
 bootloader_api = "0.11.9"
-embedded-graphics = "0.8.1"
+conquer-once = {version = "0.4.0", default-features = false}
+lazy_static = {version = "1.5.0", features=["spin_no_std"]}
+spin = "0.9.8"
+spinning_top = "0.3.0"

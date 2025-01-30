@@ -1,40 +1,22 @@
 #![no_std]
 #![no_main]
 use core::arch::asm;
-use core::convert::Infallible;
 use core::panic::PanicInfo;
 
-use console::Console;
-use display::Color;
+use frame_buffer::{Console, CONSOLE};
 
-mod console;
-mod display;
+mod frame_buffer;
 
 bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        let mut console = Console::new(
-            framebuffer,
-            Color {
-                red: 0,
-                green: 255,
-                blue: 255,
-            },
-            Color {
-                red: 0,
-                green: 0,
-                blue: 0,
-            },
-        );
-
-        console.clear();
-        for _ in 1..18 {
-            console.put_string("Hello\n");
-        }
-        console.put_string("This is Rost");
+        CONSOLE.init_once(|| {
+            let info = framebuffer.info();
+            let buffer = framebuffer.buffer_mut();
+            spinning_top::Spinlock::new(Console::new(buffer, info))
+        });
     }
-
     loop {
         unsafe { asm!("hlt") }
     }
@@ -43,8 +25,4 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
-}
-
-fn infallible<T>(v: Infallible) -> T {
-    match v {}
 }

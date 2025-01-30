@@ -31,6 +31,9 @@ fn init(boot_info: &'static mut BootInfo) {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+    loop {
+        unsafe { asm!("hlt") }
+    }
 }

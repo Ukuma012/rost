@@ -9,7 +9,7 @@ pub static CONSOLE: OnceCell<Spinlock<Console>> = OnceCell::uninit();
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::frame_buffer::_print(format_args!($($arg)*))
+        $crate::console::_print(format_args!($($arg)*))
     };
 }
 

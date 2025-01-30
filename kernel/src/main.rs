@@ -17,6 +17,8 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
             spinning_top::Spinlock::new(Console::new(buffer, info))
         });
     }
+
+    println!("Hello World");
     loop {
         unsafe { asm!("hlt") }
     }

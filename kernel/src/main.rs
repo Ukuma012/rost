@@ -7,7 +7,8 @@ use bootloader_api::BootInfo;
 use console::{Console, CONSOLE};
 
 mod console;
-mod device;
+mod usb;
+mod xhci;
 
 bootloader_api::entry_point!(kernel_main);
 

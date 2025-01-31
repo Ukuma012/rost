@@ -7,14 +7,12 @@ use bootloader_api::BootInfo;
 use console::{Console, CONSOLE};
 
 mod console;
+mod device;
 
 bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     init(boot_info);
-
-    println!("Hello World");
-    println!("{}", "This is Rost");
     loop {
         unsafe { asm!("hlt") }
     }
@@ -28,6 +26,8 @@ fn init(boot_info: &'static mut BootInfo) {
             spinning_top::Spinlock::new(Console::new(buffer, info))
         });
     }
+
+    println!("init: success!");
 }
 
 #[panic_handler]

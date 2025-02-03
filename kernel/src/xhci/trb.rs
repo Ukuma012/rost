@@ -177,3 +177,33 @@ impl DataStageTrb {
         }
     }
 }
+
+/// A Status Stage TRB is used to generate
+/// the transaction of a USB Control transfer.
+#[derive(Copy, Clone)]
+#[repr(C, align(16))]
+pub struct StatusStageTrb {
+    reserved: u64,
+    transfer_info: u32,
+    control: u32,
+}
+
+impl StatusStageTrb {
+    pub fn new_out() -> Self {
+        Self {
+            reserved: 0,
+            transfer_info: 0,
+            control: (TrbType::StatusStage as u32) << 10,
+        }
+    }
+    pub fn new_in() -> Self {
+        Self {
+            reserved: 0,
+            transfer_info: 0,
+            control: (TrbType::StatusStage as u32) << 10
+                | TrbBase::CTRL_BIT_DATA_DIR_IN
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_COMPLETION
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_SHORT_PACKET,
+        }
+    }
+}

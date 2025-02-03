@@ -1,6 +1,6 @@
-// The Transfer Request Block is the basic building block upon which all xHC USB transfers are constructed.
-// TRB TypeはTRBの種類を表す数値
+use super::volatile::Volatile;
 
+/// The Transfer Request Block is the basic building block upon which all xHC USB transfers are constructed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum TrbType {
@@ -18,6 +18,24 @@ pub enum TrbType {
     CommandCompletionEvent = 33,
     PortStatusChangeEvent = 34,
     HostControllerEvent = 37,
+}
+
+#[derive(Default, Clone)]
+#[repr(C, align(16))]
+pub struct TrbBase {
+    buffer: Volatile<u64>,
+    transfer_info: Volatile<u32>,
+    control: Volatile<u32>,
+}
+
+impl TrbBase {
+    pub fn cycle_bit_state(&self) -> bool {
+        self.control.read_bits(0, 1) != 0
+    }
+
+    pub fn set_cycle_bit_state(&mut self, cycle: bool) {
+        self.control.write_bits(0, 1, cycle.into());
+    }
 }
 
 #[derive(Copy, Clone)]

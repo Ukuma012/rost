@@ -1,3 +1,5 @@
+use core::pin::Pin;
+
 use super::volatile::Volatile;
 
 /// The Transfer Request Block is the basic building block upon which all xHC USB transfers are constructed.
@@ -67,8 +69,8 @@ impl NormalTrb {
     }
 }
 
-/// USBデバイスの初期化時に、USBデバイスからデバイス情報を得たり設定を
-/// 書き込んだりするのに用いる
+/// A Setup Stage TRB is created by system software to initiate a USB setup packet
+/// on a control endpoint.
 #[derive(Copy, Clone)]
 #[repr(C, align(16))]
 pub struct SetupStageTrb {
@@ -140,6 +142,38 @@ impl SetupStageTrb {
             control: transfer_type << 16
                 | (TrbType::SetupStage as u32) << 10
                 | TrbBase::CTRL_BIT_IMMEDIATE_DATA,
+        }
+    }
+}
+
+/// A Data Stage TRB is used generate the Data stage transaction of a USB Control transfer
+#[derive(Copy, Clone)]
+#[repr(C, align(16))]
+pub struct DataStageTrb {
+    buffer: u64,
+    transfer_info: u32,
+    control: u32,
+}
+
+impl DataStageTrb {
+    pub fn new_in<T: Sized>(buffer: Pin<&mut [T]>) -> Self {
+        Self {
+            buffer: buffer.as_ptr() as u64,
+            transfer_info: (buffer.len() * size_of::<T>()) as u32,
+            control: (TrbType::DataStage as u32) << 10
+                | TrbBase::CTRL_BIT_DATA_DIR_IN
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_COMPLETION
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_SHORT_PACKET,
+        }
+    }
+    pub fn new_out<T: Sized>(buffer: Pin<&mut [T]>) -> Self {
+        Self {
+            buffer: buffer.as_ptr() as u64,
+            transfer_info: (buffer.len() * size_of::<T>()) as u32,
+            control: (TrbType::DataStage as u32) << 10
+                | TrbBase::CTRL_BIT_DATA_DIR_OUT
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_COMPLETION
+                | TrbBase::CTRL_BIT_INTERRUPT_ON_SHORT_PACKET,
         }
     }
 }

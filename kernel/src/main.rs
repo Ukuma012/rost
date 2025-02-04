@@ -9,6 +9,7 @@ use console::{Console, CONSOLE};
 mod console;
 mod usb;
 mod utils;
+mod x86_64;
 mod xhci;
 
 bootloader_api::entry_point!(kernel_main);

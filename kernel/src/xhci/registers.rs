@@ -1,10 +1,14 @@
-use core::ptr::write_volatile;
+use core::ptr::{read_volatile, write_volatile};
 
 use spin::mutex::SpinMutex;
 
 use crate::utils::extract_bits;
 
-use super::volatile::Volatile;
+use super::{
+    contexts::{DeviceContextBaseAddressArray, RawDeviceContextBaseAddressArray},
+    rings::CommandRing,
+    volatile::Volatile,
+};
 
 /// These Registers specify the limits and capabilities of
 /// the host controller implementation.
@@ -50,6 +54,97 @@ impl CapabilityRegisters {
         (extract_bits(self.hcsparams2.read(), 21, 5) << 5
             | extract_bits(self.hcsparams2.read(), 27, 5)) as usize
     }
+}
+
+/// xHCIホストコントローラの実際の動作を制御するためのレジスタ
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct OperationalRegisters {
+    command: u32,
+    status: u32,
+    page_size: u32,
+    rsvdz1: [u32; 2],
+    notification_ctr1: u32,
+    cmd_ring_ctrl: u64,
+    rsvdz2: [u64; 2],
+    // Device Context Base Address Array Pointer
+    // デバイスコンテキストのためにメモリ領域を確保するのは
+    // ソフトウェアの役目
+    // デバイスコンテキストの先頭アドレスを並べた配列DCBAAを用意し、
+    // その配列の先頭アドレスをDCBAAPレジスタに設定する
+    dcbaap: *mut RawDeviceContextBaseAddressArray,
+    config: u64,
+}
+
+impl OperationalRegisters {
+    const CMD_RUN_STOP: u32 = 0b0001;
+    const CMD_HC_RESET: u32 = 0b0010;
+    const STATUS_HC_HALTED: u32 = 0b0001;
+    fn command(&mut self) -> u32 {
+        unsafe { read_volatile(&self.command) }
+    }
+
+    fn clear_command_bits(&mut self, bits: u32) {
+        unsafe {
+            write_volatile(&mut self.command, self.command() & !bits);
+        }
+    }
+
+    fn set_command_bits(&mut self, bits: u32) {
+        unsafe {
+            write_volatile(&mut self.command, self.command() | bits);
+        }
+    }
+
+    fn status(&mut self) -> u32 {
+        unsafe { read_volatile(&self.status) }
+    }
+
+    pub fn page_size(&self) -> usize {
+        let page_size_bits = unsafe { read_volatile(&self.page_size) } & 0xFFFF;
+        if page_size_bits.count_ones() != 1 {
+            panic!("PAGE_SIZE has multiple bits set");
+        }
+        let page_size_shift = page_size_bits.trailing_zeros();
+        1 << (page_size_shift + 12)
+    }
+
+    pub fn set_num_device_slots(&mut self, num: usize) {
+        unsafe {
+            let c = read_volatile(&self.config);
+            // 下位8bitをクリア
+            let c = c & !0xFF;
+            let c = c | u64::try_from(num).unwrap();
+            write_volatile(&mut self.config, c);
+        }
+    }
+
+    pub fn set_dcbaa_ptr(&mut self, dcbaa: &mut DeviceContextBaseAddressArray) {
+        unsafe {
+            write_volatile(&mut self.dcbaap, dcbaa.inner_mut_ptr());
+        }
+    }
+
+    pub fn set_cmd_ring_ctrl(&mut self, ring: &CommandRing) {
+        self.cmd_ring_ctrl = ring.ring_phys_addr() | 1 /* Consumer Ring Cycle State */
+    }
+
+    // pub fn reset_xhc(&mut self) {
+    //     self.clear_command_bits(Self::CMD_RUN_STOP);
+    //     while self.status() & Self::STATUS_HC_HALTED == 0 {
+    //         busy_loop_hint();
+    //     }
+    //     self.set_command_bits(Self::CMD_HC_RESET);
+    //     while self.command() & Self::CMD_HC_RESET != 0 {
+    //         busy_loop_hint();
+    //     }
+    // }
+    // pub fn start_xhc(&mut self) {
+    //     self.set_command_bits(Self::CMD_RUN_STOP);
+    //     while self.status() & Self::STATUS_HC_HALTED != 0 {
+    //         busy_loop_hint();
+    //     }
+    // }
 }
 
 // Transfer RingやCommand RingにTRBが追加されたことをxHCに通知するための仕組み

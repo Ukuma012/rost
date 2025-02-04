@@ -14,6 +14,7 @@ bootloader_api::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     init(boot_info);
+    println!("Hello World!");
     loop {
         unsafe { asm!("hlt") }
     }

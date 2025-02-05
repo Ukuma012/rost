@@ -7,6 +7,8 @@ use bootloader_api::BootInfo;
 use console::{Console, CONSOLE};
 
 mod console;
+mod gdt;
+mod paging;
 mod usb;
 mod utils;
 mod x86_64;

@@ -125,9 +125,9 @@ impl OperationalRegisters {
         }
     }
 
-    pub fn set_cmd_ring_ctrl(&mut self, ring: &CommandRing) {
-        self.cmd_ring_ctrl = ring.ring_phys_addr() | 1 /* Consumer Ring Cycle State */
-    }
+    // pub fn set_cmd_ring_ctrl(&mut self, ring: &CommandRing) {
+    //     self.cmd_ring_ctrl = ring.ring_phys_addr() | 1 /* Consumer Ring Cycle State */
+    // }
 
     // pub fn reset_xhc(&mut self) {
     //     self.clear_command_bits(Self::CMD_RUN_STOP);

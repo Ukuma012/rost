@@ -1,11 +1,16 @@
 #![no_std]
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
+#![reexport_test_harness_main = "test_main"]
+use allocator::MemoryAllocator;
 use core::arch::asm;
 use core::panic::PanicInfo;
 
 use bootloader_api::BootInfo;
 use console::{Console, CONSOLE};
 
+mod allocator;
 mod console;
 mod gdt;
 mod paging;
@@ -19,6 +24,10 @@ bootloader_api::entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     init(boot_info);
     println!("Hello World!");
+
+    #[cfg(test)]
+    test_main();
+
     loop {
         unsafe { asm!("hlt") }
     }
@@ -42,4 +51,22 @@ fn panic(info: &PanicInfo) -> ! {
     loop {
         unsafe { asm!("hlt") }
     }
+}
+
+#[global_allocator]
+static ALLOCATOR: MemoryAllocator = MemoryAllocator;
+
+#[cfg(test)]
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test()
+    }
+}
+
+#[test_case]
+fn trivial_assertion() {
+    print!("trivial assertion... ");
+    assert_eq!(1, 1);
+    println!("[ok]");
 }

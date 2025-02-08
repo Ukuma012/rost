@@ -3,6 +3,7 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+#![feature(abi_x86_interrupt)]
 use allocator::MemoryAllocator;
 use core::arch::asm;
 use core::panic::PanicInfo;
@@ -13,10 +14,10 @@ use console::{Console, CONSOLE};
 mod allocator;
 mod console;
 mod gdt;
+mod interrupts;
 mod paging;
 mod usb;
 mod utils;
-mod x86_64;
 mod xhci;
 
 bootloader_api::entry_point!(kernel_main);
@@ -24,6 +25,8 @@ bootloader_api::entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     init(boot_info);
     println!("Hello World!");
+
+    x86_64::instructions::interrupts::int3();
 
     #[cfg(test)]
     test_main();
@@ -41,6 +44,8 @@ fn init(boot_info: &'static mut BootInfo) {
             spinning_top::Spinlock::new(Console::new(buffer, info))
         });
     }
+
+    interrupts::init_idt();
 
     println!("init: success!");
 }

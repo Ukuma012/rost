@@ -26,8 +26,6 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     init(boot_info);
     println!("Hello World!");
 
-    x86_64::instructions::interrupts::int3();
-
     #[cfg(test)]
     test_main();
 
@@ -45,6 +43,7 @@ fn init(boot_info: &'static mut BootInfo) {
         });
     }
 
+    gdt::init();
     interrupts::init_idt();
 
     println!("init: success!");

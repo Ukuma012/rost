@@ -7,6 +7,7 @@ use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};
 use core::arch::asm;
 use core::panic::PanicInfo;
+use memory::BootInfoFrameAllocator;
 use x86_64::VirtAddr;
 
 mod allocator;
@@ -38,9 +39,12 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     gdt::init();
     interrupts::init_idt();
 
-    // let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
-    // let mapper: x86_64::structures::paging::OffsetPageTable<'_> =
-    //     unsafe { memory::init(phys_mem_offset) };
+    let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
+    let mapper: x86_64::structures::paging::OffsetPageTable<'_> =
+        unsafe { memory::init(phys_mem_offset) };
+    let frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_regions) };
+
+    println!("hi");
 
     loop {
         unsafe { asm!("hlt") }

@@ -5,10 +5,14 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 use allocator::MemoryAllocator;
+use bootloader_api::config::Mapping;
 use core::arch::asm;
 use core::panic::PanicInfo;
+use paging::active_level_4_table;
+use x86_64::VirtAddr;
 
 use bootloader_api::BootInfo;
+use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};
 
 mod allocator;
@@ -20,21 +24,15 @@ mod usb;
 mod utils;
 mod xhci;
 
-bootloader_api::entry_point!(kernel_main);
+static BOOTLOADER_CONFIG: BootloaderConfig = {
+    let mut config = BootloaderConfig::new_default();
+    config.mappings.physical_memory = Some(Mapping::Dynamic);
+    config
+};
+
+bootloader_api::entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
-    init(boot_info);
-    println!("Hello World!");
-
-    #[cfg(test)]
-    test_main();
-
-    loop {
-        unsafe { asm!("hlt") }
-    }
-}
-
-fn init(boot_info: &'static mut BootInfo) {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
         CONSOLE.init_once(|| {
             let info = framebuffer.info();
@@ -43,10 +41,25 @@ fn init(boot_info: &'static mut BootInfo) {
         });
     }
 
+    println!("Hello World!");
+
     gdt::init();
     interrupts::init_idt();
+    let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
+    let l4_table = unsafe { active_level_4_table(phys_mem_offset) };
 
-    println!("init: success!");
+    for (i, entry) in l4_table.iter().enumerate() {
+        if !entry.is_unused() {
+            println!("L4 Entry {}: {:?}", i, entry);
+        }
+    }
+
+    #[cfg(test)]
+    test_main();
+
+    loop {
+        unsafe { asm!("hlt") }
+    }
 }
 
 #[panic_handler]

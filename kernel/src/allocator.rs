@@ -1,32 +1,52 @@
-use core::alloc::GlobalAlloc;
+// local変数とstatic変数の制約を回避するために、変数を格納する
+// ための第三の領域であるヒープがある
 
+use core::{alloc::GlobalAlloc, ptr::null_mut};
+use linked_list_allocator::LockedHeap;
+use x86_64::{
+    structures::paging::{
+        mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
+    },
+    VirtAddr,
+};
+
+pub const HEAP_START: usize = 0x_4444_4444_0000;
+pub const HEAP_SIZE: usize = 100 * 1024; // 100KiB
 pub struct MemoryAllocator;
 
-unsafe impl GlobalAlloc for MemoryAllocator {
-    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        // テスト用の簡易実装
-        // 注意: 実際の開発では適切なメモリ管理が必要
-        static mut HEAP: [u8; 1024 * 1024] = [0; 1024 * 1024];
-        static mut NEXT: usize = 0;
+pub fn init_heap(
+    mapper: &mut impl Mapper<Size4KiB>,
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+) -> Result<(), MapToError<Size4KiB>> {
+    let page_range = {
+        let heap_start = VirtAddr::new(HEAP_START as u64);
+        let heap_end = heap_start + HEAP_SIZE.try_into().unwrap() - 1u64;
+        let heap_start_page = Page::containing_address(heap_start);
+        let heap_end_page = Page::containing_address(heap_end);
+        Page::range_inclusive(heap_start_page, heap_end_page)
+    };
 
-        let align = layout.align();
-        let size = layout.size();
-
+    for page in page_range {
+        let frame = frame_allocator
+            .allocate_frame()
+            .ok_or(MapToError::FrameAllocationFailed)?;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         unsafe {
-            // アラインメント調整
-            NEXT = (NEXT + align - 1) & !(align - 1);
-
-            if NEXT + size > HEAP.len() {
-                core::ptr::null_mut()
-            } else {
-                let ptr = HEAP.as_mut_ptr().add(NEXT);
-                NEXT += size;
-                ptr
-            }
-        }
+            mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+        };
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        todo!()
+    unsafe {
+        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
     }
+
+    Ok(())
+}
+
+#[global_allocator]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+#[alloc_error_handler]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }

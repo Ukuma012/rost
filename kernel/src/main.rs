@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
+#![feature(alloc_error_handler)]
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use allocator::MemoryAllocator;
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
@@ -18,6 +21,8 @@ mod memory;
 mod usb;
 mod utils;
 mod xhci;
+
+extern crate alloc;
 
 static BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();
@@ -40,11 +45,15 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     interrupts::init_idt();
 
     let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
-    let mapper: x86_64::structures::paging::OffsetPageTable<'_> =
+    let mut mapper: x86_64::structures::paging::OffsetPageTable<'_> =
         unsafe { memory::init(phys_mem_offset) };
-    let frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_regions) };
+    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_regions) };
 
-    println!("hi");
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+
+    let x = Box::new(41);
+
+    println!("Hello World: {}", x);
 
     loop {
         unsafe { asm!("hlt") }
@@ -58,6 +67,3 @@ fn panic(info: &PanicInfo) -> ! {
         unsafe { asm!("hlt") }
     }
 }
-
-#[global_allocator]
-static ALLOCATOR: MemoryAllocator = MemoryAllocator;

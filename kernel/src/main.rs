@@ -3,8 +3,6 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 use alloc::boxed::Box;
-use alloc::vec::Vec;
-use allocator::MemoryAllocator;
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};

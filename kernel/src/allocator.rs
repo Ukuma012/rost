@@ -1,8 +1,7 @@
 // local変数とstatic変数の制約を回避するために、変数を格納する
 // ための第三の領域であるヒープがある
 
-use bump::BumpAllocator;
-use linked_list::LinkedListAllocator;
+use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::{
     structures::paging::{
         mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
@@ -11,11 +10,10 @@ use x86_64::{
 };
 
 pub mod bump;
-pub mod linked_list;
+pub mod fixed_size_block;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100KiB
-pub struct MemoryAllocator;
 
 pub fn init_heap(
     mapper: &mut impl Mapper<Size4KiB>,
@@ -47,7 +45,7 @@ pub fn init_heap(
 }
 
 #[global_allocator]
-static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {

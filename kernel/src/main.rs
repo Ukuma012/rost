@@ -51,9 +51,8 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
-    let x = Box::new(41);
-
-    println!("Hello World: {}", x);
+    let x = Box::new("This is Rost");
+    println!("Hello World! {}", x);
 
     loop {
         unsafe { asm!("hlt") }

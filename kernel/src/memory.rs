@@ -1,3 +1,8 @@
+use core::marker::PhantomPinned;
+use core::mem::MaybeUninit;
+use core::pin::Pin;
+
+use alloc::boxed::Box;
 use bootloader_api::info::{MemoryRegionKind, MemoryRegions};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
@@ -47,4 +52,50 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
     let level_4_table = active_level_4_table(physical_memory_offset);
     OffsetPageTable::new(level_4_table, physical_memory_offset)
+}
+
+#[repr(align(4096))]
+pub struct IoBoxInner<T: Sized> {
+    data: T,
+    _pinned: PhantomPinned,
+}
+
+impl<T: Sized> IoBoxInner<T> {
+    pub fn new(data: T) -> Self {
+        Self {
+            data,
+            _pinned: PhantomPinned,
+        }
+    }
+}
+
+pub struct IoBox<T: Sized> {
+    inner: Pin<Box<IoBoxInner<T>>>,
+}
+
+impl<T: Sized> IoBox<T> {
+    pub fn new() -> Self {
+        let inner = Box::pin(IoBoxInner::new(unsafe {
+            MaybeUninit::<T>::zeroed().assume_init()
+        }));
+        let this = Self { inner };
+        // disable_cache(&this)
+        this
+    }
+
+    pub unsafe fn get_unchecked_mut(&mut self) -> &mut T {
+        &mut self.inner.as_mut().get_unchecked_mut().data
+    }
+}
+
+impl<T> AsRef<T> for IoBox<T> {
+    fn as_ref(&self) -> &T {
+        &self.inner.as_ref().get_ref().data
+    }
+}
+
+impl<T: Sized> Default for IoBox<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }

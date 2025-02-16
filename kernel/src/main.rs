@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-use alloc::boxed::Box;
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};
@@ -28,6 +27,14 @@ static BOOTLOADER_CONFIG: BootloaderConfig = {
     config
 };
 
+const OWL: &str = "
+             _______________________
+    ___     |                       | 
+   (o,o)   <  Hello! I'm ROST       |
+   {`\"'}    |_______________________|  
+   -\"-\"-  
+";
+
 bootloader_api::entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
@@ -49,8 +56,7 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
-    let x = Box::new("This is Rost");
-    println!("Hello World! {}", x);
+    println!("{}", OWL);
 
     loop {
         unsafe { asm!("hlt") }

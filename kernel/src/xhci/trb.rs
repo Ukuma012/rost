@@ -1,6 +1,6 @@
 use core::pin::Pin;
 
-use super::volatile::Volatile;
+use super::{rings::TrbRing, volatile::Volatile};
 
 /// The Transfer Request Block is the basic building block upon which all xHC USB transfers are constructed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -44,6 +44,22 @@ impl TrbBase {
 
     pub fn set_cycle_bit_state(&mut self, cycle: bool) {
         self.control.write_bits(0, 1, cycle.into());
+    }
+
+    pub fn set_toggle_cycle(&mut self, value: bool) {
+        self.control.write_bits(1, 1, value.into());
+    }
+
+    pub fn set_trb_type(&mut self, trb_type: TrbType) {
+        self.control.write_bits(10, 6, trb_type as u32);
+    }
+
+    pub fn trb_link(ring: &TrbRing) -> Self {
+        let mut trb = TrbBase::default();
+        trb.set_trb_type(TrbType::Link);
+        trb.buffer.write(ring.phys_addr());
+        trb.set_toggle_cycle(true);
+        trb
     }
 }
 

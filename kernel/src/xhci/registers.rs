@@ -1,4 +1,7 @@
-use core::ptr::{read_volatile, write_volatile};
+use core::{
+    arch::asm,
+    ptr::{read_volatile, write_volatile},
+};
 
 use spin::mutex::SpinMutex;
 
@@ -125,26 +128,26 @@ impl OperationalRegisters {
         }
     }
 
-    // pub fn set_cmd_ring_ctrl(&mut self, ring: &CommandRing) {
-    //     self.cmd_ring_ctrl = ring.ring_phys_addr() | 1 /* Consumer Ring Cycle State */
-    // }
+    pub fn set_cmd_ring_ctrl(&mut self, ring: &CommandRing) {
+        self.cmd_ring_ctrl = ring.ring_phys_addr() | 1 /* Consumer Ring Cycle State */
+    }
 
-    // pub fn reset_xhc(&mut self) {
-    //     self.clear_command_bits(Self::CMD_RUN_STOP);
-    //     while self.status() & Self::STATUS_HC_HALTED == 0 {
-    //         busy_loop_hint();
-    //     }
-    //     self.set_command_bits(Self::CMD_HC_RESET);
-    //     while self.command() & Self::CMD_HC_RESET != 0 {
-    //         busy_loop_hint();
-    //     }
-    // }
-    // pub fn start_xhc(&mut self) {
-    //     self.set_command_bits(Self::CMD_RUN_STOP);
-    //     while self.status() & Self::STATUS_HC_HALTED != 0 {
-    //         busy_loop_hint();
-    //     }
-    // }
+    pub fn reset_xhc(&mut self) {
+        self.clear_command_bits(Self::CMD_RUN_STOP);
+        while self.status() & Self::STATUS_HC_HALTED == 0 {
+            unsafe { asm!("pause") }
+        }
+        self.set_command_bits(Self::CMD_HC_RESET);
+        while self.command() & Self::CMD_HC_RESET != 0 {
+            unsafe { asm!("pause") }
+        }
+    }
+    pub fn start_xhc(&mut self) {
+        self.set_command_bits(Self::CMD_RUN_STOP);
+        while self.status() & Self::STATUS_HC_HALTED != 0 {
+            unsafe { asm!("pause") }
+        }
+    }
 }
 
 // Transfer RingやCommand RingにTRBが追加されたことをxHCに通知するための仕組み

@@ -226,3 +226,28 @@ impl TransferRing {
         self.inner.lock().ring_phys_addr()
     }
 }
+
+/// 各種イベントをxHCからソフトウェアに通知するための
+/// リングバッファ
+/// 通常、EventRingに対して書き込まれた際に割り込みを発生させるように
+/// xHCを設定する
+pub struct EventRing {}
+
+#[repr(C, align(4096))]
+pub struct EventRingSegmentTableEntry {
+    ring_segment_base_address: u64,
+    ring_segment_size: u16,
+    _rsvdz: [u16; 3],
+}
+
+impl EventRingSegmentTableEntry {
+    fn new(ring: &IoBox<TrbRing>) -> IoBox<Self> {
+        let mut erst: IoBox<Self> = IoBox::new();
+        {
+            let erst = unsafe { erst.get_unchecked_mut() };
+            erst.ring_segment_base_address = ring.as_ref() as *const TrbRing as u64;
+            erst.ring_segment_size = ring.as_ref().num_trbs() as u16;
+        }
+        erst
+    }
+}

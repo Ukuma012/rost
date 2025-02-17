@@ -15,6 +15,7 @@ mod console;
 mod gdt;
 mod interrupts;
 mod memory;
+mod task;
 mod usb;
 mod utils;
 mod xhci;
@@ -57,6 +58,7 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     println!("{}", OWL);
+    println!("Welcome to my hobby OS!");
 
     loop {
         unsafe { asm!("hlt") }

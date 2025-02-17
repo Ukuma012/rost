@@ -4,6 +4,8 @@ use core::{
     ptr::{null_mut, read_volatile, write_volatile},
 };
 
+use spin::mutex::Mutex;
+
 use crate::{allocator::ALLOCATOR, memory::IoBox};
 
 use super::trb::{NormalTrb, TrbBase, TrbType};
@@ -194,5 +196,33 @@ impl TransferRingInner {
 
     pub fn ring_phys_addr(&self) -> u64 {
         self.ring.as_ref() as *const TrbRing as u64
+    }
+}
+
+pub struct TransferRing {
+    inner: Mutex<TransferRingInner>,
+}
+
+impl TransferRing {
+    pub fn new(transfer_size: usize) -> Self {
+        let inner = TransferRingInner::new(transfer_size);
+        let inner = Mutex::new(inner);
+        Self { inner }
+    }
+
+    pub fn fill_ring(&self) {
+        self.inner.lock().fill_ring();
+    }
+
+    pub fn dequeue_trb(&self, trb_ptr: usize) {
+        self.inner.lock().dequeue_trb(trb_ptr);
+    }
+
+    pub fn current(&self) -> TrbBase {
+        self.inner.lock().current()
+    }
+
+    pub fn ring_phys_addr(&self) -> u64 {
+        self.inner.lock().ring_phys_addr()
     }
 }

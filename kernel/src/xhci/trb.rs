@@ -1,4 +1,4 @@
-use core::pin::Pin;
+use core::{mem::transmute, pin::Pin};
 
 use super::{rings::TrbRing, volatile::Volatile};
 
@@ -50,6 +50,10 @@ impl TrbBase {
         self.control.write_bits(1, 1, value.into());
     }
 
+    pub fn trb_type(&self) -> u32 {
+        self.control.read_bits(10, 6)
+    }
+
     pub fn set_trb_type(&mut self, trb_type: TrbType) {
         self.control.write_bits(10, 6, trb_type as u32);
     }
@@ -60,6 +64,12 @@ impl TrbBase {
         trb.buffer.write(ring.phys_addr());
         trb.set_toggle_cycle(true);
         trb
+    }
+}
+
+impl From<NormalTrb> for TrbBase {
+    fn from(trb: NormalTrb) -> Self {
+        unsafe { transmute(trb) }
     }
 }
 

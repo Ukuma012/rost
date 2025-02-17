@@ -1,11 +1,12 @@
 use core::{
+    alloc::{GlobalAlloc, Layout},
     marker::PhantomPinned,
-    ptr::{read_volatile, write_volatile},
+    ptr::{null_mut, read_volatile, write_volatile},
 };
 
-use crate::memory::IoBox;
+use crate::{allocator::ALLOCATOR, memory::IoBox};
 
-use super::trb::TrbBase;
+use super::trb::{NormalTrb, TrbBase, TrbType};
 
 #[repr(C, align(4096))]
 pub struct TrbRing {
@@ -85,6 +86,8 @@ impl TrbRing {
     }
 }
 
+/// xHCに指示を出すためのリングバッファ
+/// ソフトウェアがTRBを追加し、xHCがそれを読み取る
 pub struct CommandRing {
     ring: IoBox<TrbRing>,
     cycle_state_ours: bool,
@@ -107,6 +110,86 @@ impl CommandRing {
         self.cycle_state_ours = false;
         let ring = unsafe { self.ring.get_unchecked_mut() };
         ring.reset();
+    }
+
+    pub fn ring_phys_addr(&self) -> u64 {
+        self.ring.as_ref() as *const TrbRing as u64
+    }
+}
+
+/// USBデバイスとソフトウェアの間で
+/// データを送受信するためのリングバッファ
+/// ソフトウェアがTRBを追加し、xHCがそれを読み取る
+pub struct TransferRingInner {
+    ring: IoBox<TrbRing>,
+    cycle_state_ours: bool,
+    dequeue_index: usize,
+    buffers: [*mut u8; TrbRing::NUM_TRB - 1],
+}
+
+impl TransferRingInner {
+    const BUF_SIZE: usize = 4096;
+    const BUF_ALIGN: usize = 4096;
+    pub fn new(transfer_size: usize) -> Self {
+        let mut this = Self {
+            ring: TrbRing::new(),
+            cycle_state_ours: false,
+            dequeue_index: 0,
+            buffers: [null_mut(); TrbRing::NUM_TRB - 1],
+        };
+
+        let link_trb = TrbBase::trb_link(this.ring.as_ref());
+        let num_trbs = this.ring.as_ref().num_trbs();
+        let mut_ring = unsafe { this.ring.get_unchecked_mut() };
+        mut_ring.write(num_trbs - 1, link_trb);
+        for (i, v) in this.buffers.iter_mut().enumerate() {
+            let layout = Layout::from_size_align(Self::BUF_SIZE, Self::BUF_ALIGN).unwrap();
+
+            *v = unsafe { ALLOCATOR.alloc(layout) };
+
+            if v.is_null() {
+                panic!("TransfeRing buffer allocation failed")
+            }
+
+            mut_ring.write(i, NormalTrb::new(*v, transfer_size as u16).into());
+        }
+        this
+    }
+
+    pub fn fill_ring(&mut self) {
+        loop {
+            let next_enqueue_index =
+                (self.ring.as_ref().current_index() + 1) % (self.ring.as_ref().num_trbs() - 1);
+            if next_enqueue_index == self.ring.as_ref().num_trbs() - 4 {
+                // Ring is full
+                break;
+            }
+            let mut_ring = unsafe { self.ring.get_unchecked_mut() };
+            mut_ring.advance_index(!self.cycle_state_ours);
+        }
+    }
+
+    pub fn dequeue_trb(&mut self, trb_ptr: usize) {
+        let trb_ptr_expected = self.ring.as_ref().trb_ptr(self.dequeue_index);
+        if trb_ptr_expected != trb_ptr {
+            panic!("expected ptr does not match!")
+        }
+        let mut_ring = unsafe { self.ring.get_unchecked_mut() };
+
+        self.dequeue_index += 1;
+        if self.dequeue_index == mut_ring.num_trbs() - 1 {
+            self.dequeue_index = 0;
+        }
+
+        mut_ring.advance_index(!self.cycle_state_ours);
+        if mut_ring.current().trb_type() == TrbType::Link as u32 {
+            mut_ring.advance_index(!self.cycle_state_ours);
+            self.cycle_state_ours = !self.cycle_state_ours;
+        }
+    }
+
+    pub fn current(&self) -> TrbBase {
+        self.ring.as_ref().current()
     }
 
     pub fn ring_phys_addr(&self) -> u64 {

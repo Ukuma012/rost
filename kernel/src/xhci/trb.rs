@@ -38,6 +38,10 @@ impl TrbBase {
     const CTRL_BIT_DATA_DIR_OUT: u32 = 0 << 16;
     const CTRL_BIT_DATA_DIR_IN: u32 = 1 << 16;
 
+    pub fn data(&self) -> u64 {
+        self.buffer.read()
+    }
+
     pub fn cycle_bit_state(&self) -> bool {
         self.control.read_bits(0, 1) != 0
     }
@@ -56,6 +60,10 @@ impl TrbBase {
 
     pub fn set_trb_type(&mut self, trb_type: TrbType) {
         self.control.write_bits(10, 6, trb_type as u32);
+    }
+
+    pub fn slot_id(&self) -> u8 {
+        self.control.read_bits(24, 8) as u8
     }
 
     pub fn trb_link(ring: &TrbRing) -> Self {

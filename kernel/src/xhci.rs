@@ -1,6 +1,7 @@
 pub mod capability;
 pub mod contexts;
 pub mod controller;
+pub mod future;
 pub mod operational;
 pub mod registers;
 pub mod rings;

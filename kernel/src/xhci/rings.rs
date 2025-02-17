@@ -4,11 +4,18 @@ use core::{
     ptr::{null_mut, read_volatile, write_volatile},
 };
 
+use alloc::{
+    collections::{btree_map::BTreeMap, vec_deque::VecDeque},
+    rc::Weak,
+};
 use spin::mutex::Mutex;
 
 use crate::{allocator::ALLOCATOR, memory::IoBox};
 
-use super::trb::{NormalTrb, TrbBase, TrbType};
+use super::{
+    future::EventWaitInfo,
+    trb::{NormalTrb, TrbBase, TrbType},
+};
 
 #[repr(C, align(4096))]
 pub struct TrbRing {
@@ -231,7 +238,15 @@ impl TransferRing {
 /// リングバッファ
 /// 通常、EventRingに対して書き込まれた際に割り込みを発生させるように
 /// xHCを設定する
-pub struct EventRing {}
+pub struct EventRing {
+    ring: IoBox<TrbRing>,
+    erst: IoBox<EventRingSegmentTableEntry>,
+    cycle_state_ours: bool,
+    erdp: Option<*mut u64>,
+    events_per_slot: BTreeMap<u8, VecDeque<TrbBase>>,
+    events_per_trb: BTreeMap<u64, TrbBase>,
+    wait_list: VecDeque<Weak<EventWaitInfo>>,
+}
 
 #[repr(C, align(4096))]
 pub struct EventRingSegmentTableEntry {

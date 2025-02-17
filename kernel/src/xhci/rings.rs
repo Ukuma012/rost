@@ -119,9 +119,6 @@ impl CommandRing {
     }
 }
 
-/// USBデバイスとソフトウェアの間で
-/// データを送受信するためのリングバッファ
-/// ソフトウェアがTRBを追加し、xHCがそれを読み取る
 pub struct TransferRingInner {
     ring: IoBox<TrbRing>,
     cycle_state_ours: bool,
@@ -199,6 +196,9 @@ impl TransferRingInner {
     }
 }
 
+/// USBデバイスとソフトウェアの間で
+/// データを送受信するためのリングバッファ
+/// ソフトウェアがTRBを追加しxHCがそれを読み取る
 pub struct TransferRing {
     inner: Mutex<TransferRingInner>,
 }

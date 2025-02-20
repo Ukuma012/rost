@@ -13,3 +13,5 @@ pc-keyboard = "0.8.0"
 spin = "0.9.8"
 spinning_top = "0.3.0"
 x86_64 = "0.15.2"
+crossbeam-queue = { version = "0.3.8", default-features = false, features = ["alloc"] }
+crossbeam-utils = { version = "0.8", default-features = false, features = ["nightly"] }

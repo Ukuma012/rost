@@ -68,7 +68,6 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         let spawner = Spawner::new(100);
         let mut executor = Executor::new(spawner.clone());
         spawner.add(keyboard::print_keypresses());
-        println!("Still running");
         executor.run();
     };
 }

@@ -1,1 +1,1 @@
-![rost Image](https://github.com/Ukuma012/rost/image.png)
+![rost Image](/image.png)

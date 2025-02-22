@@ -2,14 +2,16 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
+#![feature(try_blocks)]
+use anyhow;
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};
 use core::arch::asm;
 use core::panic::PanicInfo;
 use memory::BootInfoFrameAllocator;
-use task::simple_executor::SimpleExecutor;
-use task::Task;
+use task::executor::{Executor, Spawner};
+use task::keyboard;
 use x86_64::VirtAddr;
 
 mod allocator;
@@ -62,22 +64,13 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     println!("{}", OWL);
     println!("Welcome to my hobby OS!");
 
-    let mut executor = SimpleExecutor::new();
-    executor.spawn(Task::new(example_task()));
-    executor.run();
-
-    async fn async_number() -> u32 {
-        42
-    }
-
-    async fn example_task() {
-        let number = async_number().await;
-        println!("async number: {}", number);
-    }
-
-    loop {
-        unsafe { asm!("hlt") }
-    }
+    let _result: anyhow::Result<()> = try {
+        let spawner = Spawner::new(100);
+        let mut executor = Executor::new(spawner.clone());
+        spawner.add(keyboard::print_keypresses());
+        println!("Still running");
+        executor.run();
+    };
 }
 
 #[panic_handler]

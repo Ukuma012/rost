@@ -7,6 +7,8 @@ use bootloader_api::info::{MemoryRegionKind, MemoryRegions};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
+use crate::println;
+
 pub struct BootInfoFrameAllocator {
     memory_regions: &'static MemoryRegions,
     next: usize,

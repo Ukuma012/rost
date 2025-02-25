@@ -3,7 +3,6 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(try_blocks)]
-use anyhow;
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
 use console::{Console, CONSOLE};
@@ -12,6 +11,7 @@ use core::panic::PanicInfo;
 use memory::BootInfoFrameAllocator;
 use task::executor::{Executor, Spawner};
 use task::keyboard;
+use x86_64::instructions::port::Port;
 use x86_64::VirtAddr;
 
 mod allocator;
@@ -54,6 +54,14 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     gdt::init();
     interrupts::init_idt();
 
+    unsafe {
+        interrupts::PICS.lock().initialize();
+        let mut master_pic = Port::<u8>::new(0x21);
+        master_pic.write(0xFC);
+        println!("PIC mask set to 0xFC - Timer and Keyboard enabled");
+    };
+    x86_64::instructions::interrupts::enable();
+
     let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
     let mut mapper: x86_64::structures::paging::OffsetPageTable<'_> =
         unsafe { memory::init(phys_mem_offset) };
@@ -63,6 +71,7 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
     println!("{}", OWL);
     println!("Welcome to my hobby OS!");
+    print!("> ");
 
     let _result: anyhow::Result<()> = try {
         let spawner = Spawner::new(100);

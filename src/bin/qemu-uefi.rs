@@ -9,8 +9,7 @@ fn main() {
     qemu.arg(format!("format=raw,file={}", env!("UEFI_IMAGE")));
     qemu.arg("-bios");
     qemu.arg("OVMF_CODE.fd");
-    qemu.arg("-device");
-    qemu.arg("virtio-keyboard");
+
     let exit_status = qemu.status().unwrap();
     process::exit(exit_status.code().unwrap_or(-1));
 }

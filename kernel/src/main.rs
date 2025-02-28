@@ -19,6 +19,7 @@ mod console;
 mod gdt;
 mod interrupts;
 mod memory;
+mod process;
 mod task;
 mod usb;
 mod utils;
@@ -69,9 +70,11 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
+    process::scheduler::SCHEDULER
+        .init_once(|| spinning_top::Spinlock::new(process::scheduler::Scheduler::new()));
+
     println!("{}", OWL);
-    println!("Welcome to my hobby OS!");
-    print!("> ");
+    print!(">> ");
 
     let _result: anyhow::Result<()> = try {
         let spawner = Spawner::new(100);

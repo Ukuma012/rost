@@ -1,7 +1,7 @@
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::{fmt, ptr};
-use noto_sans_mono_bitmap::{get_raster, RasterHeight, RasterizedChar};
+use noto_sans_mono_bitmap::{get_raster, RasterizedChar};
 use spinning_top::Spinlock;
 
 pub static CONSOLE: OnceCell<Spinlock<Console>> = OnceCell::uninit();

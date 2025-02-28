@@ -1,6 +1,5 @@
 /// x86_64アーキテクチャは例外発生時に予め定義されている
 /// 既知の正常なスタックに切り替えることができる
-use conquer_once::spin::OnceCell;
 use lazy_static::lazy_static;
 use pc_keyboard::{layouts, HandleControl, Keyboard, ScancodeSet1};
 use pic8259::ChainedPics;
@@ -15,7 +14,7 @@ pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 pub static PICS: Mutex<ChainedPics> =
     Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
 
-use crate::{gdt, print, println};
+use crate::{gdt, println, process::scheduler::SCHEDULER};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -51,7 +50,15 @@ extern "x86-interrupt" fn double_fault_handler(
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    static mut TICK_COUNT: u64 = 0;
     unsafe {
+        TICK_COUNT += 1;
+
+        if TICK_COUNT % 10 == 0 {
+            if let Some(schduler) = SCHEDULER.get() {
+                schduler.lock().context_switch();
+            }
+        }
         PICS.lock()
             .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
